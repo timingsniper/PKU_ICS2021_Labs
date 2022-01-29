@@ -1,0 +1,238 @@
+                            | #######################################################################
+                            | # Test for copying block of size 4;
+                            | #######################################################################
+0x000:                      | 	.pos 0
+0x000: 30f44004000000000000 | main:	irmovq Stack, %rsp  	# Set up stack pointer
+                            | 
+                            | 	# Set up arguments for copy function and then invoke it
+0x00a: 30f20400000000000000 | 	irmovq $4, %rdx		# src and dst have 4 elements
+0x014: 30f69803000000000000 | 	irmovq dest, %rsi	# dst array
+0x01e: 30f76803000000000000 | 	irmovq src, %rdi	# src array
+0x028: 803200000000000000   | 	call ncopy		 
+0x031: 00                   | 	halt			# should halt with num nonzeros in %rax
+0x032:                      | StartFun:
+                            | #/* $begin ncopy-ys */
+                            | ##################################################################
+                            | # ncopy.ys - Copy a src block of len words to dst.
+                            | # Return the number of positive words (>0) containrd in src.
+                            | #
+                            | # Include your name and ID here.
+                            | # 张晙优 Percy Joonwoo Jang, 1800094804@pku.rdu.cn
+                            | #
+                            | # Drscribe how and why you modifird the baseline code.
+                            | ### Credits: To assist myself with initial 思路 ideas, the following links were usrd
+                            | ### as reference. I affirm that code below was written by myself, and I never plagerizrd the codes in the link and complied with the academic integrity standards.
+                            | ### https://github.com/super-cooper/CMU-Archlab/blob/master/sim/pipe/ncopy.ys
+                            | ### https://zhuanlan.zhihu.com/p/397957989
+                            | #
+                            | #Original attempts were made trying to make objdump of ncopy.c and using the .o file to make the Y86-64 version, however in order to bring CPE to acceptable range, referencing was done.
+                            | #
+                            | #1. Loop unrolling was utilized throughout the code. This way, the number of loops
+                            | #   executed was reduced, therefore resulting in lower CPE. 
+                            | #2. Parts unrolled mainly serve to avoid load-use hazard.
+                            | #3. For the above reasons, IADDQ, which was implemented in pipe-full.hcl, was used
+                            | #   (If not, 2 instructions would be required to add an immediate value to the register)
+                            | #4. Overall idea of the program is to perform checks&operations on 6 elements (maximum) at once
+                            | #5. Instructions were reordered, so bubbling could be avoided.
+                            | #6. Big idea: unroll loop so that 6 elements can be dealt at once, modify the length to do operation 8 times and check if there's more, repeat if condition is met
+                            | #7. Unrolling more didn't necessarily result in reduced CPE, as this program only can reach up to 7.97 CPE.
+                            | #8. Detailed comments for each instructions are written below. 谢谢助教！
+                            | #
+                            | ##################################################################
+                            | # Do not modify this portion
+                            | # Function prologue.
+                            | # %rdi = src, %rsi = dst, %rdx = len
+0x032:                      | ncopy:
+                            | 
+                            | ##################################################################
+                            | # You can modify this portion
+                            | # Loop Header
+                            | 	
+                            | 	
+0x032: c0f2f8ffffffffffffff | 	iaddq  $-8, %rdx            # len -= 8
+0x03c: 72b401000000000000   | 	jl     checkNextIndexes     # Check if there are more elements left.
+                            | 
+0x045:                      | Loop:	
+0x045: 50870000000000000000 |     mrmovq (%rdi), %r8      # Copy src[i] to %r8
+0x04f: 50970800000000000000 | 	mrmovq 8(%rdi), %r9     # Copy src[i+1] to %r9
+0x059: 40860000000000000000 | 	rmmovq %r8, (%rsi)	    # copy src[i] to dst
+0x063: 6288                 | 	andq   %r8, %r8	        
+0x065: 717800000000000000   | 	jle    Pos0		        # if(src[i]<=0)goTo Pos0
+0x06e: c0f00100000000000000 | 	iaddq  $1, %rax		    # count++, positive number otherwise
+                            | 
+0x078:                      | Pos0:	
+0x078: 40960800000000000000 | 	rmmovq %r9, 8(%rsi)     # Copy src[i+1] to dst[i+1]
+0x082: 6299                 | 	andq   %r9, %r9         
+0x084: 719700000000000000   | 	jle    Pos1		        # if (src[i+1]<=0) go to Pos1
+0x08d: c0f00100000000000000 | 	iaddq  $1, %rax         # count++, positive number otherwise
+                            | 
+0x097:                      | Pos1: 
+0x097: 50871000000000000000 | 	mrmovq 16(%rdi), %r8    # Copy src[i+2] to %r8
+0x0a1: 50971800000000000000 | 	mrmovq 24(%rdi), %r9    # Copy src[i+3] to %r9
+0x0ab: 40861000000000000000 | 	rmmovq %r8, 16(%rsi)    # Copy src[i+2] to dst[i+2]
+0x0b5: 6288                 | 	andq   %r8, %r8         
+0x0b7: 71ca00000000000000   | 	jle    Pos2             # if(src[i+2] <= 0), go to Pos2
+0x0c0: c0f00100000000000000 | 	iaddq  $1, %rax         # count++, positive number otherwise
+                            | 
+0x0ca:                      | Pos2: 
+0x0ca: 40961800000000000000 | 	rmmovq %r9, 24(%rsi)    # Copy src[i+3] to dst[i+3]
+0x0d4: 6299                 | 	andq   %r9, %r9           
+0x0d6: 71e900000000000000   | 	jle    Pos3             # if(src[i+3] <= 0), go to Pos3
+0x0df: c0f00100000000000000 | 	iaddq  $1, %rax         # count++, positive number otherwise
+                            | 	
+0x0e9:                      | Pos3: 
+0x0e9: 50872000000000000000 | 	mrmovq 32(%rdi), %r8    # Copy src[i+4] to %r8
+0x0f3: 50972800000000000000 | 	mrmovq 40(%rdi), %r9    # Copy src[i+5] to %r9
+0x0fd: 40862000000000000000 | 	rmmovq %r8, 32(%rsi)    # Copy src[i+4] to dst[i+4]
+0x107: 6288                 | 	andq   %r8, %r8         
+0x109: 711c01000000000000   | 	jle    Pos4             # if (src[i+4] <= 0), go to Pos4
+0x112: c0f00100000000000000 | 	iaddq  $1, %rax         # count++, positive number otherwise
+                            | 
+0x11c:                      | Pos4: 
+0x11c: 40962800000000000000 | 	rmmovq %r9, 40(%rsi)    # Copy src[i+5] to dst[i+5]
+0x126: 6299                 | 	andq   %r9, %r9         
+0x128: 713b01000000000000   | 	jle    Pos5             # if(src[i+5]<=0), go to Pos5
+0x131: c0f00100000000000000 | 	iaddq  $1, %rax         # count++, positive number otherwise
+                            | 
+0x13b:                      | Pos5: 
+0x13b: 50873000000000000000 | 	mrmovq 48(%rdi), %r8    # Copy src[i+6] to %r8
+0x145: 50973800000000000000 | 	mrmovq 56(%rdi), %r9    # Copy src[i+7] to %r9
+0x14f: 40863000000000000000 | 	rmmovq %r8, 48(%rsi)    # Copy src[i+6] to dst[i+6]
+0x159: 6288                 | 	andq   %r8, %r8         
+0x15b: 716e01000000000000   | 	jle    Pos6             # if(src[i+6] <= 0), go to Pos6
+0x164: c0f00100000000000000 | 	iaddq  $1, %rax         # count++
+                            | 
+0x16e:                      | Pos6: 
+0x16e: 40963800000000000000 | 	rmmovq %r9, 56(%rsi)    # src[i+7] to dst[i+7]
+0x178: 6299                 | 	andq   %r9, %r9         
+0x17a: 718d01000000000000   | 	jle    Unroller         # if(src[i+7]<=0), go to Unroller
+0x183: c0f00100000000000000 | 	iaddq  $1, %rax         # count++
+                            | 
+                            | 
+0x18d:                      | Unroller: 
+0x18d: c0f74000000000000000 | 	iaddq $64, %rdi         # Start unrolling src at [i+8]
+0x197: c0f64000000000000000 | 	iaddq $64, %rsi         # Start unrolling dst at [i+8]
+0x1a1: c0f2f8ffffffffffffff | 	iaddq $-8, %rdx         
+0x1ab: 754500000000000000   | 	jge   Loop              #Back to loop 
+                            | 
+0x1b4:                      | checkNextIndexes:  
+0x1b4: c0f20800000000000000 | 	iaddq $8, %rdx          #If there are more elements, add back 8 and start unrolled operations again  
+                            | 
+                            | #Loops below perform the same thing as the unrollers above, however with previous indexes+8
+0x1be:                      | Next0:
+0x1be: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx        #Decrement 1 to len every time, so condition check can be done in next statement
+0x1c8: 726203000000000000   | 	jl     Done             #Condition to end if there are no more elements
+0x1d1: 50870000000000000000 | 	mrmovq (%rdi), %r8   
+0x1db: 50970800000000000000 | 	mrmovq 8(%rdi), %r9    
+0x1e5: 40860000000000000000 | 	rmmovq %r8, (%rsi)     
+0x1ef: 6288                 | 	andq   %r8, %r8         
+0x1f1: 710402000000000000   | 	jle    Next1          
+0x1fa: c0f00100000000000000 | 	iaddq  $1, %rax        
+                            | 	
+0x204:                      | Next1: 
+0x204: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx        
+0x20e: 726203000000000000   | 	jl     Done            
+0x217: 40960800000000000000 | 	rmmovq %r9, 8(%rsi)   
+0x221: 6299                 | 	andq   %r9, %r9       
+0x223: 713602000000000000   | 	jle    Next2          
+0x22c: c0f00100000000000000 | 	iaddq  $1, %rax         
+                            | 
+0x236:                      | Next2: 
+0x236: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx       
+0x240: 726203000000000000   | 	jl     Done             
+0x249: 50871000000000000000 | 	mrmovq 16(%rdi), %r8   
+0x253: 50971800000000000000 | 	mrmovq 24(%rdi), %r9   
+0x25d: 40861000000000000000 | 	rmmovq %r8, 16(%rsi)   
+0x267: 6288                 | 	andq   %r8, %r8       
+0x269: 717c02000000000000   | 	jle    Next3           
+0x272: c0f00100000000000000 | 	iaddq  $1, %rax        
+                            | 
+0x27c:                      | Next3: 
+0x27c: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx        
+0x286: 726203000000000000   | 	jl     Done	        
+0x28f: 40961800000000000000 | 	rmmovq %r9, 24(%rsi)  
+0x299: 6299                 | 	andq   %r9, %r9      
+0x29b: 71ae02000000000000   | 	jle    Next4           
+0x2a4: c0f00100000000000000 | 	iaddq  $1, %rax 
+                            | 
+0x2ae:                      | Next4: 
+0x2ae: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx        
+0x2b8: 726203000000000000   | 	jl     Done            
+0x2c1: 50872000000000000000 | 	mrmovq 32(%rdi), %r8   
+0x2cb: 50972800000000000000 | 	mrmovq 40(%rdi), %r9   
+0x2d5: 40862000000000000000 | 	rmmovq %r8, 32(%rsi)   
+0x2df: 6288                 | 	andq   %r8, %r8       
+0x2e1: 71f402000000000000   | 	jle    Next5           
+0x2ea: c0f00100000000000000 | 	iaddq  $1, %rax         
+                            | 
+0x2f4:                      | Next5: 
+0x2f4: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx       
+0x2fe: 726203000000000000   | 	jl     Done	        
+0x307: 40962800000000000000 | 	rmmovq %r9, 40(%rsi)   
+0x311: 6299                 | 	andq   %r9, %r9      
+0x313: 712603000000000000   | 	jle    Next6         
+0x31c: c0f00100000000000000 | 	iaddq  $1, %rax 
+                            | 
+0x326:                      | Next6: 
+0x326: c0f2ffffffffffffffff | 	iaddq  $-1, %rdx       
+0x330: 726203000000000000   | 	jl     Done            
+0x339: 50873000000000000000 | 	mrmovq 48(%rdi), %r8  
+0x343: 40863000000000000000 | 	rmmovq %r8, 48(%rsi)   
+0x34d: 6288                 | 	andq   %r8, %r8       
+0x34f: 716203000000000000   | 	jle    Done             
+0x358: c0f00100000000000000 | 	iaddq  $1, %rax       
+                            | 
+                            | 
+                            | ##################################################################
+                            | # Do not modify the following section of code
+                            | # Function epilogue.
+0x362:                      | Done:
+0x362: 90                   | 	ret
+                            | ##################################################################
+                            | # Keep the following label at the end of your function
+0x363:                      | End:
+                            | #/* $end ncopy-ys */
+0x363:                      | EndFun:
+                            | 
+                            | ###############################
+                            | # Source and destination blocks 
+                            | ###############################
+0x368:                      | 	.align 8
+0x368:                      | src:
+0x368: ffffffffffffffff     | 	.quad -1
+0x370: 0200000000000000     | 	.quad 2
+0x378: 0300000000000000     | 	.quad 3
+0x380: fcffffffffffffff     | 	.quad -4
+0x388: fadebc0000000000     | 	.quad 0xbcdefa # This shouldn't get moved
+                            | 
+0x390:                      | 	.align 16
+0x390:                      | Predest:
+0x390: fadebc0000000000     | 	.quad 0xbcdefa
+0x398:                      | dest:
+0x398: abefcd0000000000     | 	.quad 0xcdefab
+0x3a0: abefcd0000000000     | 	.quad 0xcdefab
+0x3a8: abefcd0000000000     | 	.quad 0xcdefab
+0x3b0: abefcd0000000000     | 	.quad 0xcdefab
+0x3b8:                      | Postdest:
+0x3b8: bcfade0000000000     | 	.quad 0xdefabc
+                            | 
+0x3c0:                      | .align 8
+                            | # Run time stack
+0x3c0: 0000000000000000     | 	.quad 0
+0x3c8: 0000000000000000     | 	.quad 0
+0x3d0: 0000000000000000     | 	.quad 0
+0x3d8: 0000000000000000     | 	.quad 0
+0x3e0: 0000000000000000     | 	.quad 0
+0x3e8: 0000000000000000     | 	.quad 0
+0x3f0: 0000000000000000     | 	.quad 0
+0x3f8: 0000000000000000     | 	.quad 0
+0x400: 0000000000000000     | 	.quad 0
+0x408: 0000000000000000     | 	.quad 0
+0x410: 0000000000000000     | 	.quad 0
+0x418: 0000000000000000     | 	.quad 0
+0x420: 0000000000000000     | 	.quad 0
+0x428: 0000000000000000     | 	.quad 0
+0x430: 0000000000000000     | 	.quad 0
+0x438: 0000000000000000     | 	.quad 0
+                            | 
+0x440:                      | Stack:

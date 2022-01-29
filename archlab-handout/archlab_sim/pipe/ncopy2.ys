@@ -1,0 +1,189 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len words to dst.
+# Return the number of positive words (>0) containrd in src.
+#
+# Include your name and ID here.
+# 张晙优 Percy Joonwoo Jang, 1800094804@pku.rdu.cn
+#
+# Drscribe how and why you modifird the baseline code.
+### Credits: To assist myself with initial 思路 ideas, the following links were usrd
+### as reference, but I affirm that I never plagerizrd the codes in the link and complird with the academic integrity standards.
+### https://github.com/super-cooper/CMU-Archlab/blob/master/sim/pipe/ncopy.ys
+### https://zhuanlan.zhihu.com/p/397957989
+#
+#1. Loop unrolling was utilized throughout the code. This way, the number of loops
+#   executed was reduced, therefore resulting in lower CPE. 
+#2. Parts unrolled mainly serve to avoid load-use hazard.
+#
+#
+#
+#
+#
+#
+##################################################################
+# Do not modify this portion
+# Function prologue.
+# %rdi = src, %rsi = dst, %rdx = len
+ncopy:
+
+##################################################################
+# You can modify this portion
+# Loop Header
+	
+		
+L0:
+    iaddq $-8,%rdx 
+    jl LASTN         # 处理最后小于n个数
+
+L1:         # 对10个数两个一组处理，避免load/use气泡
+    mrmovq (%rdi), %r8	#store value of src[0] in %r8
+    mrmovq 8(%rdi),%r9	#store value of src[1] in %r9
+    rmmovq %r8,(%rsi)	#dst[0] = src[0]
+    andq %r8, %r8		
+    jle L2				#if(src[0] <= 0 goto next unrolled part)
+    iaddq $1,%rax    	#Otherwise increment rax, positive number found
+L2: 
+    rmmovq %r9,8(%rsi)	#dst[1] = src[1]
+    andq %r9,%r9		
+    jle L3				#if(src[1]<= goto next unrolled part)
+    iaddq $1,%rax		#Otherwise increment rax, positive number found
+L3:
+    mrmovq 16(%rdi), %r8	#store value of src[2] in %r8
+    mrmovq 24(%rdi), %r9	#store value of src[3] in %r9
+    rmmovq %r8,16(%rsi)		#dst[2] = src[2]
+    andq %r8, %r8
+    jle L4				#if(src[2]<= goto next unrolled part)
+    iaddq $1, %rax      # if (val > 0) count++
+L4:
+    rmmovq %r9,24(%rsi)
+    andq %r9,%r9
+    jle L5
+    iaddq $1,%rax
+L5:
+    mrmovq 32(%rdi), %r8
+    mrmovq 40(%rdi), %r9
+    rmmovq %r8,32(%rsi)
+    andq %r8, %r8 
+    jle L6
+    iaddq $1, %rax      # if (val > 0) count++
+L6:
+    rmmovq %r9,40(%rsi)
+    andq %r9,%r9
+    jle L11
+    iaddq $1,%rax 
+
+
+L11:                     # next loop preparation
+    iaddq $72,%rdi
+    iaddq $72,%rsi
+    iaddq $-8,%rdx
+    jge L1
+
+LASTN:
+    mrmovq (%rdi), %r10
+    iaddq $5,%rdx        # 判断剩余的len与3(10-7)的大小关系
+    jl  LESS3     # <3
+    jg  MORE3        # >3
+    je  EQUAL3     # =3
+
+LESS3:
+    iaddq   $2,%rdx      # 10-7-2=1
+    je  LAST1_2
+    iaddq   $-1,%rdx    # len == 2
+    je  LAST2
+    ret         # len == 0 
+MORE3:
+    iaddq   $-3,%rdx    # 10-7+3=6 
+    jg  MORE6      #  len > 6
+    je  EQUAL6     # len == 6
+    iaddq   $1,%rdx 
+    jl LAST4     # len == 4
+    je  LAST5     # len == 5    
+MORE6:
+    iaddq   $-2,%rdx
+    jl  LAST7
+    mrmovq 48(%rdi), %r9   # read src[8] from src
+    je  LAST8    # len=8
+
+LAST9:
+    rmmovq %r9, 48(%rsi)
+    andq %r9, %r9     # set cc
+
+LAST8:
+    mrmovq 40(%rdi), %r8   # read src[7] from src
+    jle LAST8_2    
+    iaddq $1, %rax        # if(rsi[8]>0) count++
+LAST8_2:    
+    rmmovq %r8, 40(%rsi)
+    andq %r8, %r8     # set cc
+
+LAST7:
+    mrmovq 32(%rdi), %r8   # read src[6] from src
+    jle LAST7_2   
+    iaddq $1, %rax        # if(rsi[7]>0) count++
+LAST7_2:        
+    rmmovq %r8, 32(%rsi)
+    andq %r8, %r8     # set cc
+
+EQUAL6:
+    mrmovq 24(%rdi), %r8   # read src[5] from src
+    jle LAST6_2
+    iaddq $1, %rax        # if(rsi[6]>0) count++
+LAST6_2:        
+    rmmovq %r8, 24(%rsi)
+    andq %r8, %r8     # set cc
+
+LAST5:
+    mrmovq 16(%rdi), %r8   # read src[4] from src
+    jle LAST5_2   
+    iaddq $1, %rax        # if(rsi[5]>0) count++
+LAST5_2:
+    rmmovq %r8, 16(%rsi)
+    andq %r8, %r8     # set cc
+
+LAST4:
+    mrmovq 8(%rdi), %r8   # read src[3] from src
+    jle LAST4_2 
+    iaddq $1, %rax        # if(rsi[4]>0) count++
+LAST4_2:
+    rmmovq %r8, 8(%rsi)
+    andq %r8, %r8     # set cc
+
+EQUAL3:
+    mrmovq (%rdi), %r8   # read src[2] from src
+    jle EQUAL3_2   
+    iaddq $1, %rax        # if(rsi[3]>0) count++
+EQUAL3_2:
+    rmmovq %r8, (%rsi)
+    andq %r8, %r8     # set cc
+
+LAST2:
+    mrmovq 8(%rdi), %r8    # read src[1] from src
+    jle LAST2_2   
+    iaddq $1, %rax        # if(rsi[2]>0) count++
+LAST2_2:
+    rmmovq %r8, 8(%rsi)
+    andq %r8, %r8 
+
+LAST1:
+    # mrmovq (%rdi), %r8 # read src[0] from src
+    jle LAST1_2        # 上一步操作(如果是跳转到这里执行直接跳转，不然判断上一个记录到dst的数是不是正数)
+    iaddq $1, %rax        # if(rsi[1]>0) count++
+LAST1_2:
+    rmmovq %r10, (%rsi)
+    andq %r10, %r10
+    jle Done 
+    iaddq $1, %rax        # if(rsi[0]>0) count++
+
+
+
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+	ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+#/* $end ncopy-ys */

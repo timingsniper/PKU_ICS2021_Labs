@@ -1,0 +1,17 @@
+	irmovq $0x1ff, %rax #这是jm指令的rB
+	irmovq $0x200, %rcx #这是jm要读取的内存的地址，这个地址处存放跳转地址
+	irmovq $0x15, %rbx  #不重要
+	irmovq $0x2a, %rbp  #也不重要
+	irmovq $0x400, %rdx #这是从内存中读取到的跳转地址
+	rmmovq %rdx, 0(%rcx) #将跳转地址0x400写到内存
+	irmovq $0x60351010, %rsi
+	rmmovq %rsi, 0(%rdx) #指令add %rbx, %rbp ; nop ;nop;
+	irmovq $0x10603510, %rsi
+	rmmovq %rsi, 8(%rdx) #指令nop ; add %rbx, %rbp; nop;
+	irmovq $0x10100000, %rsi
+	rmmovq %rsi, 16(%rbx) #指令nop ; nop ; halt ;
+	nop
+	nop
+	nop	
+	jm $0x1 ,%rax #0x1ff + 0x1 = 0x200 内存地址
+	halt

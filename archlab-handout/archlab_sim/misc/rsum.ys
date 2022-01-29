@@ -1,0 +1,55 @@
+#Archlab rsum.ys, written by ?ñÛ? Percy Joonwoo Jang, 1800094804@pku.edu.cn
+
+start:		
+		.pos 0		#Starting position
+		irmovq stack, %rsp	#Stack pointer setup
+		call main		#Call main function
+		halt
+
+#Sample linked list as in handout 
+.align 8
+ele1:
+		.quad 0x00a
+		.quad ele2
+ele2:		
+		.quad 0x0b0
+		.quad ele3
+ele3:
+		.quad 0xc00
+		.quad 0
+
+#long rsum_list(list_ptr ls) 
+rsum_list:
+		pushq %rbx	#callee saved register
+		irmovq $0, %rax	#long val (return value) = 0	
+		andq %rdi, %rdi	#check ls
+		je return		#if ls == null return
+		mrmovq (%rdi), %rbx	#move ls->val to %rbx
+		mrmovq 8(%rdi), %rdi	#set parameter for next call to ls->next
+		call rsum_list	#call rsum_list, recursion
+		addq %rbx, %rax	#perform val + rest
+return:
+		popq %rbx
+		ret
+		
+
+		
+
+main:
+		irmovq ele1, %rdi	#ele1 as parameter rdi
+		call rsum_list
+		ret
+
+		.pos 0x200
+stack:
+		
+		
+
+
+
+
+
+
+
+
+

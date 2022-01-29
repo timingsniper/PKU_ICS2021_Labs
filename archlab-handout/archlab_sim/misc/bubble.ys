@@ -1,0 +1,95 @@
+#Archlab bubble.ys, written by ?��? Percy Joonwoo Jang, 1800094804@pku.edu.cn
+
+start:		
+		.pos 0		#Starting position
+		irmovq stack, %rsp	#Stack pointer setup
+		call main		#Call main function
+		halt
+
+#Sample array as in handout 
+.align 8
+Array:
+		.quad 0xbca
+		.quad 0xcba
+		.quad 0xacb
+		.quad 0xcab
+		.quad 0xabc
+		.quad 0xbac
+
+#bubble_sort(long *data, long count)
+bubble_sort:
+		#pushq %r8	#r8~r10: callee-save registers, push them into the stack
+		#pushq %r9
+		#pushq %r10
+		#pushq %r11
+		#pushq %r12
+		rrmovq %rsi, %r8 	#r8 = count
+		irmovq $1, %r9		#r9 = 1, immediate vals have to be stored in registers for Y86-64
+		subq %r9, %r8		#subtract instruction to set condition code
+		jmp check_return	#jump to check condition for the big (outer) loop
+
+smallLoop:
+		rrmovq %rdi, %r12	#set r12 = data
+		irmovq $8, %r10		#r10 = 8
+		rrmovq %rax, %rcx	#set rcx = rax = 0 (initially)
+		
+		conditionCheck:
+				subq %r9, %rcx	#rcx = rax - 1, set condition flag
+				jl sort			#if(rcx < 1), proceed with the sorting
+				addq %r10, %r12	#add 8 to data, r12 = next element
+				jmp conditionCheck	#perform check again with next element
+		sort: #actual sorting process
+				mrmovq (%r12), %rdx	#rdx = *data
+				rrmovq %r12, %rsi	#rsi=count=data
+				addq %r10, %rsi		#rsi = data+8
+				mrmovq (%rsi), %rcx	#rcx = *(data+8)
+				rrmovq %rcx, %r10	#r10 = data+8
+				subq %rdx, %r10		#r10 = r10 - data, set condition code
+				jge sortOK			#if data+8>=data (sorting was done right) jump to sortOK
+				rmmovq %rdx, (%rsi)
+				rmmovq %rcx, (%r12)
+
+		
+
+
+sortOK:
+		addq %r9, %rax
+		jmp smallLoop_test
+		
+loopBegin:
+		xorq %rax, %rax	#initialize rax to 0
+
+smallLoop_test:
+		rrmovq %rax, %r10	#r10 = rax
+		subq %r8, %r10		#r10 = rax - (count-1)
+		jl smallLoop		#if(0 < count-1) go to proceed with inner loop
+		subq %r9, %r8		#set condition flag for check_return's condition checking
+							
+check_return:
+		jg loopBegin	#if count>1, condition for big loop is met, initialize big loop
+		#popq %r8
+		#popq %r9
+		#popq %r10
+		#popq %r11
+		#popq %r12
+		ret				#if condition above not met, time to return
+
+main:
+		irmovq Array, %rdi	#Array as parameter rdi
+		irmovq $6, %rsi	#Count = 6 as parameter rsi
+		call bubble_sort #call bubble_sort
+		ret
+
+
+		.pos 0x200
+stack:
+		
+		
+
+
+
+
+
+
+
+

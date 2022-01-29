@@ -1,0 +1,50 @@
+#Archlab sum.ys, written by ?ñÛ? Percy Joonwoo Jang, 1800094804@pku.edu.cn
+
+start:		.pos 0			#Starting position
+		irmovq stack, %rsp	#Stack pointer setup
+		call main		#Call main function
+		halt
+
+#Sample linked list as in handout 
+.align 8
+ele1:
+		.quad 0x00a
+		.quad ele2
+ele2:		
+		.quad 0x0b0
+		.quad ele3
+ele3:
+		.quad 0xc00
+		.quad 0
+
+#long sum_list(list_ptr ls) 
+sum_list:
+		irmovq $0, %rax	#long val = 0	
+check:
+		andq %rdi, %rdi	#check ls
+		jne loop		#if ls != null keep on looping
+		ret
+loop:
+		mrmovq (%rdi), %rcx	#move ls->val to %rcx
+		addq %rcx, %rax	#add value in rcx (ls->val) to val
+		mrmovq 8(%rdi), %rcx	#8+rdi = next, put it in rcx
+		rrmovq %rcx, %rdi	#complete ls = ls->next
+		jmp check		#back to condition checking
+main:
+		irmovq ele1, %rdi	#ele1 as parameter rdi
+		call sum_list
+		ret
+
+		.pos 0x200
+stack:
+		
+		
+
+
+
+
+
+
+
+
+

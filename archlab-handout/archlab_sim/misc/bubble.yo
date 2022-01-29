@@ -1,0 +1,95 @@
+                            | #Archlab bubble.ys, written by ?��? Percy Joonwoo Jang, 1800094804@pku.edu.cn
+                            | 
+0x000:                      | start:		
+0x000:                      | 		.pos 0		#Starting position
+0x000: 30f40002000000000000 | 		irmovq stack, %rsp	#Stack pointer setup
+0x00a: 80e200000000000000   | 		call main		#Call main function
+0x013: 00                   | 		halt
+                            | 
+                            | #Sample array as in handout 
+0x018:                      | .align 8
+0x018:                      | Array:
+0x018: ca0b000000000000     | 		.quad 0xbca
+0x020: ba0c000000000000     | 		.quad 0xcba
+0x028: cb0a000000000000     | 		.quad 0xacb
+0x030: ab0c000000000000     | 		.quad 0xcab
+0x038: bc0a000000000000     | 		.quad 0xabc
+0x040: ac0b000000000000     | 		.quad 0xbac
+                            | 
+                            | #bubble_sort(long *data, long count)
+0x048:                      | bubble_sort:
+                            | 		#pushq %r8	#r8~r10: callee-save registers, push them into the stack
+                            | 		#pushq %r9
+                            | 		#pushq %r10
+                            | 		#pushq %r11
+                            | 		#pushq %r12
+0x048: 2068                 | 		rrmovq %rsi, %r8 	#r8 = count
+0x04a: 30f90100000000000000 | 		irmovq $1, %r9		#r9 = 1, immediate vals have to be stored in registers for Y86-64
+0x054: 6198                 | 		subq %r9, %r8		#subtract instruction to set condition code
+0x056: 70d800000000000000   | 		jmp check_return	#jump to check condition for the big (outer) loop
+                            | 
+0x05f:                      | smallLoop:
+0x05f: 207c                 | 		rrmovq %rdi, %r12	#set r12 = data
+0x061: 30fa0800000000000000 | 		irmovq $8, %r10		#r10 = 8
+0x06b: 2001                 | 		rrmovq %rax, %rcx	#set rcx = rax = 0 (initially)
+                            | 		
+0x06d:                      | 		conditionCheck:
+0x06d: 6191                 | 				subq %r9, %rcx	#r11 = rax - 1, set condition flag
+0x06f: 728300000000000000   | 				jl sort			#if(rcx < 1), proceed with the sorting
+0x078: 60ac                 | 				addq %r10, %r12	#add 8 to data, r12 = next element
+0x07a: 706d00000000000000   | 				jmp conditionCheck	#perform check again with next element
+0x083:                      | 		sort: #actual sorting process
+0x083: 502c0000000000000000 | 				mrmovq (%r12), %rdx	#rdx = *data
+0x08d: 20c6                 | 				rrmovq %r12, %rsi	#rsi=count=data
+0x08f: 60a6                 | 				addq %r10, %rsi		#rsi = data+8
+0x091: 50160000000000000000 | 				mrmovq (%rsi), %rcx	#r11 = *(data+8)
+0x09b: 201a                 | 				rrmovq %rcx, %r10
+0x09d: 612a                 | 				subq %rdx, %r10
+0x09f: 75bc00000000000000   | 				jge sortOK
+0x0a8: 40260000000000000000 | 				rmmovq %rdx, (%rsi)
+0x0b2: 401c0000000000000000 | 				rmmovq %rcx, (%r12)
+                            | 
+                            | 		
+                            | 
+                            | 
+0x0bc:                      | sortOK:
+0x0bc: 6090                 | 		addq %r9, %rax
+0x0be: 70c900000000000000   | 		jmp smallLoop_test
+                            | 		
+0x0c7:                      | loopBegin:
+0x0c7: 6300                 | 		xorq %rax, %rax	#initialize rax to 0
+                            | 
+0x0c9:                      | smallLoop_test:
+0x0c9: 200a                 | 		rrmovq %rax, %r10	#r10 = rax
+0x0cb: 618a                 | 		subq %r8, %r10		#r10 = rax - (count-1)
+0x0cd: 725f00000000000000   | 		jl smallLoop		#if(0 < count-1) go to proceed with inner loop
+0x0d6: 6198                 | 		subq %r9, %r8		#set condition flag for check_return's condition checking
+                            | 							
+0x0d8:                      | check_return:
+0x0d8: 76c700000000000000   | 		jg loopBegin	#if count>1, condition for big loop is met, initialize big loop
+                            | 		#popq %r8
+                            | 		#popq %r9
+                            | 		#popq %r10
+                            | 		#popq %r11
+                            | 		#popq %r12
+0x0e1: 90                   | 		ret				#if condition above not met, time to return
+                            | 
+0x0e2:                      | main:
+0x0e2: 30f71800000000000000 | 		irmovq Array, %rdi	#Array as parameter rdi
+0x0ec: 30f60600000000000000 | 		irmovq $6, %rsi	#Count = 6 as parameter rsi
+0x0f6: 804800000000000000   | 		call bubble_sort #call bubble_sort
+0x0ff: 90                   | 		ret
+                            | 
+                            | 
+0x200:                      | 		.pos 0x200
+0x200:                      | stack:
+                            | 		
+                            | 		
+                            | 
+                            | 
+                            | 
+                            | 
+                            | 
+                            | 
+                            | 
+                            | 
