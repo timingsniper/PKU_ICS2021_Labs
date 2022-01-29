@@ -1,0 +1,7 @@
+Try to shine, and let the moonlight crown me.
+0 1 3 6 10 15
+0 880
+6 21
+ruldog
+2 5 1 6 3 4
+
